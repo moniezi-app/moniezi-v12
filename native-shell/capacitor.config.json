@@ -1,0 +1,18 @@
+{
+  "appId": "com.moniezi.app",
+  "appName": "Moniezi",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "plugins": {
+    "MonieziOCR": {}
+  },
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "automatic"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
