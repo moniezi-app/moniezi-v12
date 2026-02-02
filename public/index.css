@@ -1,0 +1,13 @@
+/* index.css
+   This file exists because index.html links to it:
+   <link rel="stylesheet" href="index.css" />
+
+   Vite will copy anything inside /public into /dist at build time,
+   so this eliminates the 404 error on GitHub Pages.
+
+   You can add small global tweaks here if you ever need them.
+*/
+
+html, body {
+  height: 100%;
+}

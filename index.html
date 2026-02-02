@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#0b1020" />
+
+    <!--
+      iOS "blank white screen" fix:
+      This inline, "critical" CSS + loader renders instantly (before Tailwind/fonts load),
+      so Safari has something visible during the 1–3s boot time.
+    -->
+    <style>
+      html, body { height: 100%; margin: 0; }
+      /* Default (dark) — your <html> starts with class="dark" */
+      body { background: #0b1020; color: #ffffff; }
+
+      /* Light mode (when you remove .dark from <html>) */
+      html:not(.dark) body { background: #dbe7ff; color: #0f172a; }
+
+      #app-loader {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: inherit;   /* matches light/dark */
+        color: inherit;
+        z-index: 9999;
+      }
+
+      #app-loader .wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        text-align: center;
+        padding: 24px;
+      }
+
+      #app-loader .mark {
+        width: 76px;
+        height: 76px;
+        border-radius: 22px;
+        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        display: grid;
+        place-items: center;
+        box-shadow: 0 18px 50px rgba(0,0,0,.35);
+      }
+
+   #app-loader .mark img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  display: block;
+}
+
+
+      #app-loader .brand {
+        font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        font-weight: 800;
+        letter-spacing: 0.38em;
+        font-size: 18px;
+        opacity: 0.95;
+      }
+
+      #app-loader .sub {
+        font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.26em;
+        font-size: 11px;
+        opacity: 0.7;
+      }
+
+      #app-loader .hint {
+        font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        font-weight: 600;
+        font-size: 12px;
+        opacity: 0.65;
+        margin-top: 6px;
+      }
+    </style>
+
+
+    <!-- Favicons -->
+    <link rel="icon" href="favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+
+    <!-- iOS PWA icon -->
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <title>Moniezi Pro | Modern Financial Management</title>
+
+    <style>
+      /* ========================================
+         SEMANTIC COLOR TOKENS
+         ======================================== */
+      :root {
+        /* Text tokens - Light theme (SHARP BLACK text) */
+        --text-primary: #000000;           /* pure black */
+        --text-secondary: #0f172a;         /* slate-900 */
+        --text-muted: #1e293b;             /* slate-800 */
+        --text-hint: #334155;              /* slate-700 */
+        
+        /* Navigation & Tab tokens - Light theme (very dark for readability) */
+        --nav-inactive: #1e293b;           /* slate-800 */
+        --nav-active: #2563eb;             /* blue-600 */
+        --tab-inactive: #1e293b;           /* slate-800 - very dark */
+        --tab-active: #2563eb;             /* blue-600 */
+        
+        /* Scroll-to-top button - Light theme */
+        --scroll-btn-bg: #ffffff;
+        --scroll-btn-icon: #3b82f6;        /* blue-500 */
+        --scroll-btn-border: rgba(0,0,0,0.1);
+        --scroll-btn-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      }
+      
+      .dark {
+        /* Text tokens - Dark theme (BRIGHT WHITE text) */
+        --text-primary: #ffffff;           /* pure white */
+        --text-secondary: #f1f5f9;         /* slate-100 */
+        --text-muted: #e2e8f0;             /* slate-200 */
+        --text-hint: #cbd5e1;              /* slate-300 */
+        
+        /* Navigation & Tab tokens - Dark theme (very bright) */
+        --nav-inactive: #e2e8f0;           /* slate-200 - very bright */
+        --nav-active: #ffffff;             /* white */
+        --tab-inactive: #e2e8f0;           /* slate-200 - very bright */
+        --tab-active: #60a5fa;             /* blue-400 */
+        
+        /* Scroll-to-top button - Dark theme */
+        --scroll-btn-bg: #1e293b;          /* slate-800 */
+        --scroll-btn-icon: #60a5fa;        /* blue-400 */
+        --scroll-btn-border: rgba(255,255,255,0.1);
+        --scroll-btn-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      }
+      
+      /* Utility classes using semantic tokens */
+      .text-primary { color: var(--text-primary) !important; }
+      .text-secondary { color: var(--text-secondary) !important; }
+      .text-muted { color: var(--text-muted) !important; }
+      .text-hint { color: var(--text-hint) !important; }
+      .nav-inactive { color: var(--nav-inactive) !important; }
+      .nav-active { color: var(--nav-active) !important; }
+      .tab-inactive { color: var(--tab-inactive) !important; }
+      .tab-active { color: var(--tab-active) !important; }
+
+      /* ========================================
+         GLOBAL CONTRAST IMPROVEMENTS
+         Override Tailwind's default slate colors for better readability
+         Using html:not(.dark) for light theme to avoid breaking dark theme
+         ======================================== */
+      
+      /* Light theme ONLY: Make ALL gray text BLACK for maximum sharpness */
+      html:not(.dark) .text-slate-300,
+      html:not(.dark) .text-slate-400,
+      html:not(.dark) .text-slate-500,
+      html:not(.dark) .text-slate-600,
+      html:not(.dark) .text-slate-700,
+      html:not(.dark) .text-slate-800,
+      html:not(.dark) .text-slate-900,
+      html:not(.dark) .text-slate-950 { 
+        color: #000000 !important; 
+      }
+      
+      /* Dark theme: Make ALL gray text BRIGHT for readability */
+      .dark .text-slate-300 { color: #ffffff !important; }
+      .dark .text-slate-400 { color: #f1f5f9 !important; }
+      .dark .text-slate-500 { color: #e2e8f0 !important; }
+      .dark .text-slate-600 { color: #e2e8f0 !important; }
+      .dark .text-slate-700 { color: #cbd5e1 !important; }
+      .dark .text-slate-800 { color: #cbd5e1 !important; }
+      
+      /* Light theme ONLY: Fix blue-tinted text */
+      html:not(.dark) .text-blue-100\/80,
+      html:not(.dark) .text-blue-200,
+      html:not(.dark) .text-blue-200\/80,
+      html:not(.dark) .text-blue-200\/90 { 
+        color: #000000 !important; 
+      }
+      
+      /* Dark theme: bright blue tints */
+      .dark .text-blue-100\/80 { color: #ffffff !important; }
+      .dark .text-blue-200 { color: #ffffff !important; }
+      .dark .text-blue-200\/80 { color: #f1f5f9 !important; }
+      .dark .text-blue-200\/90 { color: #f1f5f9 !important; }
+
+      /* ========================================
+         LIGHT THEME MASTER FIX
+         Force readable typography across the entire app
+         BUT preserve white text on colored backgrounds
+         ======================================== */
+      
+      /* Ensure Inter font is used everywhere */
+      * {
+        font-family: "Inter", system-ui, -apple-system, sans-serif !important;
+      }
+      
+      /* LIGHT THEME: Global text color override - make EVERYTHING dark */
+      html:not(.dark) {
+        --light-text-primary: #000000;
+        --light-text-secondary: #0a0a0a;
+        --light-text-muted: #171717;
+      }
+      
+      /* Force all text in light mode to be dark and readable */
+      html:not(.dark) body {
+        color: #000000;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      /* Light theme: Boost font weights for better readability - but keep large numbers refined */
+      html:not(.dark) .font-medium { font-weight: 600 !important; }
+      html:not(.dark) .font-semibold { font-weight: 700 !important; }
+      html:not(.dark) .font-bold { font-weight: 700 !important; }
+      html:not(.dark) .font-extrabold { font-weight: 800 !important; }
+      
+      /* Light theme: Make ALL small text bolder - but NOT override explicit white */
+      html:not(.dark) .text-\[10px\]:not(.text-white),
+      html:not(.dark) .text-\[11px\]:not(.text-white) { 
+        font-weight: 700 !important; 
+      }
+      
+      html:not(.dark) .text-xs:not(.text-white) { 
+        font-weight: 600 !important; 
+      }
+      
+      html:not(.dark) .text-sm:not(.text-white) { 
+        font-weight: 500 !important; 
+      }
+      
+      /* PRESERVE white text - DO NOT override these */
+      html:not(.dark) .text-white { color: #ffffff !important; }
+      html:not(.dark) .text-white\/90 { color: rgba(255,255,255,0.9) !important; }
+      html:not(.dark) .text-white\/80 { color: rgba(255,255,255,0.8) !important; }
+      
+      /* Light theme: Override gray colors ONLY on elements without colored backgrounds */
+      html:not(.dark) [class*="text-slate-"]:not([class*="bg-blue"]):not([class*="bg-red"]):not([class*="bg-amber"]):not([class*="bg-orange"]):not([class*="bg-emerald"]):not([class*="bg-green"]):not([class*="bg-purple"]) {
+        color: #000000 !important;
+      }
+      
+      /* Light theme: Tighter tracking for sharper appearance */
+      html:not(.dark) .tracking-wide { letter-spacing: 0.02em !important; }
+      html:not(.dark) .tracking-wider { letter-spacing: 0.04em !important; }
+      html:not(.dark) .tracking-widest { letter-spacing: 0.1em !important; }
+
+      /* Force consistent base font size across all browsers */
+      html {
+        font-size: 16px !important;
+        -webkit-text-size-adjust: 100% !important;
+        -moz-text-size-adjust: none !important;
+        text-size-adjust: 100% !important;
+      }
+
+      body {
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        -webkit-tap-highlight-color: transparent;
+        /* Cross-browser font rendering consistency */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        font-size: 16px !important;
+        line-height: 1.5;
+      }
+
+      /* Normalize font rendering across browsers */
+      * {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        /* Prevent Firefox from adjusting font sizes */
+        text-size-adjust: none !important;
+        -moz-text-size-adjust: none !important;
+        -webkit-text-size-adjust: none !important;
+      }
+
+      /* Force all Tailwind text sizes to use exact pixel values */
+      .text-\[9px\] { font-size: 9px !important; }
+      .text-\[10px\] { font-size: 10px !important; }
+      .text-\[11px\] { font-size: 11px !important; }
+      .text-\[13px\] { font-size: 13px !important; }
+      .text-xs { font-size: 12px !important; line-height: 1rem !important; }
+      .text-sm { font-size: 14px !important; line-height: 1.25rem !important; }
+      .text-base { font-size: 16px !important; line-height: 1.5rem !important; }
+      .text-lg { font-size: 18px !important; line-height: 1.75rem !important; }
+      .text-xl { font-size: 20px !important; line-height: 1.75rem !important; }
+      .text-2xl { font-size: 24px !important; line-height: 2rem !important; }
+      .text-3xl { font-size: 30px !important; line-height: 2.25rem !important; }
+      .text-4xl { font-size: 36px !important; line-height: 2.5rem !important; }
+      .text-5xl { font-size: 48px !important; line-height: 1 !important; }
+
+      /* Responsive text overrides - sm: breakpoint (640px+) */
+      @media (min-width: 640px) {
+        .sm\:text-xs { font-size: 12px !important; }
+        .sm\:text-sm { font-size: 14px !important; }
+        .sm\:text-base { font-size: 16px !important; }
+        .sm\:text-lg { font-size: 18px !important; }
+        .sm\:text-xl { font-size: 20px !important; }
+        .sm\:text-2xl { font-size: 24px !important; }
+        .sm\:text-3xl { font-size: 30px !important; }
+        .sm\:text-4xl { font-size: 36px !important; }
+        .sm\:text-\[10px\] { font-size: 10px !important; }
+      }
+
+      /* Force tracking/letter-spacing */
+      .tracking-wide { letter-spacing: 0.025em !important; }
+      .tracking-wider { letter-spacing: 0.05em !important; }
+      .tracking-widest { letter-spacing: 0.1em !important; }
+      .tracking-tight { letter-spacing: -0.025em !important; }
+      .tracking-tighter { letter-spacing: -0.05em !important; }
+
+      /* Ensure whitespace and text wrapping work consistently */
+      .whitespace-nowrap { white-space: nowrap !important; }
+      .truncate { 
+        overflow: hidden !important; 
+        text-overflow: ellipsis !important; 
+        white-space: nowrap !important; 
+      }
+
+      @media print {
+        .no-print {
+          display: none !important;
+        }
+        .print-only {
+          display: block !important;
+        }
+        body {
+          background-color: white !important;
+          color: black !important;
+        }
+        @page {
+          margin: 0;
+        }
+      }
+      .print-only {
+        display: none;
+      }
+
+      ::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      .dark ::-webkit-scrollbar-thumb {
+        background: #1e293b;
+      }
+
+      input[type="date"] {
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+      }
+      .dark input[type="date"] {
+        color-scheme: dark;
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus,
+      button:focus {
+        outline: none;
+      }
+
+      /* ---------------------------------------------------------
+         Light-mode readability boost (ONLY affects light mode)
+         Goal: reduce faded text on light-blue background.
+         --------------------------------------------------------- */
+
+      /* Darken the most common muted text classes in light mode - stronger contrast */
+      /* Only apply when NOT also using text-white */
+      html:not(.dark) .text-slate-300:not(.text-white) {
+        color: #475569 !important; /* slate-600 */
+      }
+      html:not(.dark) .text-slate-400:not(.text-white) {
+        color: #334155 !important; /* slate-700 */
+      }
+      html:not(.dark) .text-slate-500:not(.text-white) {
+        color: #1e293b !important; /* slate-800 */
+      }
+      html:not(.dark) .text-slate-600:not(.text-white) {
+        color: #0f172a !important; /* slate-900 */
+      }
+
+      /* Stronger borders in light mode so cards pop */
+      html:not(.dark) .border-slate-200 {
+        border-color: #94a3b8 !important; /* slate-400 */
+      }
+      html:not(.dark) .border-slate-100 {
+        border-color: #cbd5e1 !important; /* slate-300 */
+      }
+
+      /* Weight boost: makes text sharper and more readable */
+      html:not(.dark) .font-normal {
+        font-weight: 500 !important;
+      }
+      html:not(.dark) .font-medium {
+        font-weight: 600 !important;
+      }
+      html:not(.dark) .font-semibold {
+        font-weight: 700 !important;
+      }
+
+      /* Preserve white text on dark backgrounds - these must NOT be overridden */
+      .text-white {
+        color: #ffffff !important;
+      }
+
+      /* Universal flexbox fixes for all browsers */
+      .whitespace-nowrap {
+        white-space: nowrap !important;
+      }
+      .flex-shrink-0 {
+        flex-shrink: 0 !important;
+      }
+
+      /* Cross-browser flex item sizing consistency */
+      .flex > * {
+        min-width: 0;
+      }
+      
+      /* Firefox-specific class applied via JS */
+      .firefox .text-xs { font-size: 12px !important; }
+      .firefox .text-sm { font-size: 14px !important; }
+      .firefox .text-base { font-size: 16px !important; }
+      .firefox .text-lg { font-size: 18px !important; }
+      .firefox .text-xl { font-size: 20px !important; }
+      .firefox .text-2xl { font-size: 24px !important; }
+      .firefox .text-3xl { font-size: 30px !important; }
+      .firefox .text-4xl { font-size: 36px !important; }
+      .firefox .text-5xl { font-size: 48px !important; }
+    </style>
+  </head>
+
+  <body
+    class="antialiased bg-slatebg dark:bg-slate-950 text-slate-900 dark:text-slate-50 transition-colors duration-300 selection:bg-blue-500/30 selection:text-blue-600 dark:selection:text-blue-200"
+  >
+    <!-- Firefox font size fix - runs immediately -->
+    <script>
+      (function() {
+        var isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+        if (isFirefox) {
+          document.documentElement.classList.add('firefox');
+          // Force disable text inflation
+          var style = document.createElement('style');
+          style.textContent = `
+            .firefox, .firefox * {
+              -moz-text-size-adjust: none !important;
+              text-size-adjust: none !important;
+            }
+            .firefox .text-xs { font-size: 12px !important; }
+            .firefox .text-sm { font-size: 14px !important; }
+            .firefox .text-base { font-size: 16px !important; }
+            .firefox .text-lg { font-size: 18px !important; }
+            .firefox .text-xl { font-size: 20px !important; }
+            .firefox .text-2xl { font-size: 24px !important; }
+            .firefox .text-3xl { font-size: 30px !important; }
+            .firefox .text-4xl { font-size: 36px !important; }
+            .firefox .text-5xl { font-size: 48px !important; }
+          `;
+          document.head.appendChild(style);
+        }
+      })();
+    </script>
+    <div id="root">
+      <!-- Instant loader (visible on iOS while JS/CSS loads). React replaces this automatically. -->
+      <div id="app-loader" aria-label="Loading Moniezi Pro">
+        <div class="wrap">
+         <div class="mark" aria-hidden="true">
+  <img src="icons/icon-192.png" alt="Moniezi" />
+</div>
+
+          <div class="brand">MONIEZI</div>
+          <div class="sub">PRO FINANCE</div>
+          <div class="hint">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="index.tsx"></script>
+
+    <!-- Service Worker (PWA) -->
+    <script type="module">
+      if (import.meta.env.PROD && "serviceWorker" in navigator) {
+        window.addEventListener("load", async () => {
+          try {
+            await navigator.serviceWorker.register(
+              `${import.meta.env.BASE_URL}service-worker.js`
+            );
+          } catch (e) {
+            console.warn("[PWA] Service worker registration failed:", e);
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
